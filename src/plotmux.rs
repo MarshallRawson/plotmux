@@ -1,4 +1,3 @@
-use bincode;
 use crossbeam_channel::{Receiver, Sender};
 use defer::defer;
 use image::{ImageBuffer, Rgb, RgbImage};
