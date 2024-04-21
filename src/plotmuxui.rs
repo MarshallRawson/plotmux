@@ -1,9 +1,7 @@
 use crate::plotmux::PlotableData;
 use crate::plotpanel::{Panel, PlotPanel};
 use crate::plotsource::PlotSource;
-use bincode;
 use crossbeam_channel::{unbounded, Receiver, Sender};
-use eframe;
 use eframe::egui;
 use eframe::egui::widget_text::RichText;
 use eframe::egui::widgets::plot;
