@@ -15,6 +15,10 @@ name = "plotmuxui"
 path = "src/bin/plotmuxui.rs"
 required-features = ["plotmuxui"]
 
+[[example]]
+name = "local-client"
+path = "examples/local_client.rs"
+
 [dependencies]
 crossbeam-channel = "0.5.12"
 defer = "0.2.1"
