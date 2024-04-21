@@ -5,7 +5,6 @@ use crossbeam_channel::bounded;
 use std::net::TcpListener;
 
 use derivative::Derivative;
-use defer::defer;
 use crate::plotmux::{
     color, Color, InitSeries2d, PlotReceiver, PlotSender, PlotableData, PlotableDeltaImage,
     PlotableInitImage, PlotableString, RgbDeltaImage, Series2d, Series2dVec,
@@ -29,7 +28,8 @@ pub struct PlotSink {
     name: (Color, String),
     pipe: (PlotSender, PlotReceiver),
     #[derivative(Debug="ignore")]
-    _tcp_thread: Box<dyn Send>,
+    //_tcp_thread: Box<dyn Send>,
+    tcp_thread: Option<JoinHandle<()>>,
     first_send: bool,
     full_warn: bool,
     series_plots_2d: HashMap<String, (usize, HashMap<String, usize>)>,
@@ -43,7 +43,7 @@ impl PlotSink {
             Self {
                 name: (color, name),
                 pipe: pipe,
-                _tcp_thread: Box::new(defer(|| tcp_thread.join().unwrap())),
+                tcp_thread: Some(tcp_thread),
                 first_send: true,
                 full_warn: false,
                 series_plots_2d: HashMap::new(),
@@ -216,6 +216,14 @@ impl PlotSink {
         }
     }
 }
+
+impl Drop for PlotSink {
+    fn drop(&mut self) {
+        let tcp = self.tcp_thread.take().unwrap();
+        tcp.join().unwrap();
+    }
+}
+
 
 fn make_tcp_sender(idx: usize, name: String, addr: String, recv: PlotReceiver) -> (u16, JoinHandle<()>) {
     let thread_name = name+"-tcp-sender-thread";
