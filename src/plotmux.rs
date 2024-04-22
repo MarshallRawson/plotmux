@@ -204,10 +204,11 @@ fn make_client(png_path: Option<&PathBuf>, mode: &ClientMode) -> TcpStream {
 pub struct PlotMux {
     mode: ClientMode,
     addr: String,
+    port_range: Option<(u16, u16)>,
     ports: Vec<u16>,
 }
 impl PlotMux {
-    pub fn make(mode: ClientMode) -> Self {
+    pub fn make(mode: ClientMode, port_range: Option<(u16, u16)>) -> Self {
         println!("mode: {:?}", mode);
         let addr = match &mode {
             ClientMode::Local() => "localhost".into(),
@@ -216,14 +217,18 @@ impl PlotMux {
         PlotMux {
             addr: addr,
             mode: mode,
+            port_range: port_range,
             ports: vec![],
         }
     }
     pub fn add_plot_sink(&mut self, name: &str) -> PlotSink {
         let c = color(name);
-        let (plot_sink, port) = PlotSink::make(self.ports.len(), name.into(), self.addr.clone(), c);
+        let (plot_sink, port) = PlotSink::make(self.ports.len(), name.into(), self.addr.clone(), &self.port_range, c);
         self.ports.push(port);
-        println!("{}, {}", name, port);
+        if self.port_range.is_some() && port >= self.port_range.unwrap().0 {
+            self.port_range.as_mut().unwrap().0 = port+1;
+        }
+        println!("{}: {}", name, port);
         plot_sink
     }
     pub fn make_ready(self, png_path: Option<&PathBuf>) -> impl Drop {

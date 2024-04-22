@@ -36,9 +36,9 @@ pub struct PlotSink {
     image_plots: HashMap<String, (usize, Option<RgbImage>)>,
 }
 impl PlotSink {
-    pub fn make(idx: usize, name: String, addr: String, color: Color) -> (Self, u16) {
+    pub fn make(idx: usize, name: String, addr: String, ports: &Option<(u16, u16)>, color: Color) -> (Self, u16) {
         let pipe = bounded(100);
-        let (port, tcp_thread) = make_tcp_sender(idx, name.clone(), addr, pipe.1.clone());
+        let (port, tcp_thread) = make_tcp_sender(idx, name.clone(), addr, pipe.1.clone(), ports);
         (
             Self {
                 name: (color, name),
@@ -225,11 +225,22 @@ impl Drop for PlotSink {
 }
 
 
-fn make_tcp_sender(idx: usize, name: String, addr: String, recv: PlotReceiver) -> (u16, JoinHandle<()>) {
+fn make_tcp_sender(idx: usize, name: String, addr: String, recv: PlotReceiver, ports: &Option<(u16, u16)>) -> (u16, JoinHandle<()>) {
     let thread_name = name+"-tcp-sender-thread";
     let exp = format!("failed to spawn thread: {}", thread_name);
     let mut encoder = snap::raw::Encoder::new();
-    let listener = TcpListener::bind(addr+":0").unwrap();
+    let listener = if let Some(ports) = ports {
+        let mut listener = None;
+        for p in ports.0..ports.1 {
+            listener = TcpListener::bind(format!("{addr}:{p}")).ok();
+            if listener.is_some() {
+                break;
+            }
+        }
+        listener.unwrap()
+    } else {
+        TcpListener::bind(format!("{addr}:0")).unwrap()
+    };
     let port = listener.local_addr().unwrap().port();
     (
         port,
