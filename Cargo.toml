@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["plotmuxui"]
-plotmuxui = []
+#default = ["plotmuxui"]
+plotmuxui = ["dep:egui_extras", "dep:eframe"]
 
 [lib]
 path = "src/lib.rs"
@@ -23,8 +23,8 @@ path = "examples/local_client.rs"
 crossbeam-channel = "0.5.12"
 defer = "0.2.1"
 sha1 = "0.10.1"
-eframe = "0.22"
-egui_extras = { version = "0.22", features = ["image"] }
+eframe = { version = "0.22", optional = true }
+egui_extras = { version = "0.22", features = ["image"], optional = true }
 lazy_static = "1.4.0"
 serde = { version = "1.0.198", features = ["derive"] }
 serde_bytes = "0.11.14"

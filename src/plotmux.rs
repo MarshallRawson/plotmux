@@ -194,7 +194,7 @@ fn make_client(png_path: Option<&PathBuf>, mode: &ClientMode) -> TcpStream {
                 .expect("starting plotmuxui");
         }
         ClientMode::Remote((addr, port)) => {
-            println!("cargo run --bin plotmuxui -- --addr {} --port {}", addr, port);
+            println!("cargo run --bin plotmuxui --features=\"plotmuxui\" -- --addr {} --port {}", addr, port);
         }
     };
     let (client, _socket) = listener.accept().unwrap();
