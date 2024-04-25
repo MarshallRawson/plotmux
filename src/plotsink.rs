@@ -1,9 +1,10 @@
 use std::io::Write;
 use std::thread;
 use std::thread::JoinHandle;
-use crossbeam_channel::bounded;
 use std::net::TcpListener;
+use std::time::Instant;
 
+use crossbeam_channel::bounded;
 use derivative::Derivative;
 use crate::plotmux::{
     color, Color, InitSeries2d, PlotReceiver, PlotSender, PlotableData, PlotableDeltaImage,
@@ -27,8 +28,8 @@ pub enum ImageCompression {
 pub struct PlotSink {
     name: (Color, String),
     pipe: (PlotSender, PlotReceiver),
+    start: Instant,
     #[derivative(Debug="ignore")]
-    //_tcp_thread: Box<dyn Send>,
     tcp_thread: Option<JoinHandle<()>>,
     first_send: bool,
     full_warn: bool,
@@ -36,13 +37,14 @@ pub struct PlotSink {
     image_plots: HashMap<String, (usize, Option<RgbImage>)>,
 }
 impl PlotSink {
-    pub fn make(idx: usize, name: String, addr: String, ports: &Option<(u16, u16)>, color: Color) -> (Self, u16) {
+    pub fn make(idx: usize, name: String, addr: String, ports: &Option<(u16, u16)>, color: Color, start: Instant) -> (Self, u16) {
         let pipe = bounded(100);
         let (port, tcp_thread) = make_tcp_sender(idx, name.clone(), addr, pipe.1.clone(), ports);
         (
             Self {
                 name: (color, name),
                 pipe: pipe,
+                start: start,
                 tcp_thread: Some(tcp_thread),
                 first_send: true,
                 full_warn: false,
@@ -214,6 +216,16 @@ impl PlotSink {
                 self.image_plots.get_mut(channel).unwrap().1 = None;
             }
         }
+    }
+    pub fn time<F: FnOnce() -> T, T>(&mut self, plot: &str, line: &str, f: F) -> T {
+        let t0 = Instant::now();
+        let res = f();
+        let t1 = Instant::now();
+        self.plot_series_2d(plot, line,
+            (t1 - self.start).as_secs_f64(),
+            (t1 - t0).as_secs_f64()
+        );
+        res
     }
 }
 

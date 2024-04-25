@@ -1,14 +1,16 @@
-use crossbeam_channel::{Receiver, Sender};
-use defer::defer;
-use image::{ImageBuffer, Rgb, RgbImage};
-use serde::{Deserialize, Serialize};
-use sha1::{Digest, Sha1};
 use std::env;
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::thread;
+use std::time::Instant;
+
+use crossbeam_channel::{Receiver, Sender};
+use defer::defer;
+use image::{ImageBuffer, Rgb, RgbImage};
+use serde::{Deserialize, Serialize};
+use sha1::{Digest, Sha1};
 
 use crate::plotsink::PlotSink;
 
@@ -206,6 +208,7 @@ pub struct PlotMux {
     addr: String,
     port_range: Option<(u16, u16)>,
     ports: Vec<u16>,
+    start: Instant,
 }
 impl PlotMux {
     pub fn make(mode: ClientMode, port_range: Option<(u16, u16)>) -> Self {
@@ -219,11 +222,12 @@ impl PlotMux {
             mode: mode,
             port_range: port_range,
             ports: vec![],
+            start: Instant::now(),
         }
     }
     pub fn add_plot_sink(&mut self, name: &str) -> PlotSink {
         let c = color(name);
-        let (plot_sink, port) = PlotSink::make(self.ports.len(), name.into(), self.addr.clone(), &self.port_range, c);
+        let (plot_sink, port) = PlotSink::make(self.ports.len(), name.into(), self.addr.clone(), &self.port_range, c, self.start);
         self.ports.push(port);
         if self.port_range.is_some() && port >= self.port_range.unwrap().0 {
             self.port_range.as_mut().unwrap().0 = port+1;
